@@ -1,0 +1,128 @@
+{% extends 'pybo/base.html' %}
+{% load pybo_filter %}
+{% block content%}
+<div class="container my-3">
+    <div class="row justify-content-between my-3">
+        <div class="col-2">
+            <select class="form-control so">
+                
+                <option value="recent" {% if so == 'recent' %}selected{%endif%}>최신순</option>
+                <option value="recommend" {% if so == 'recommend' %}selected{%endif%}>추천순</option>
+                <option value="popular" {% if so == 'popular' %}selected{%endif%}>인기순</option>
+            </select>
+        </div>
+        <div class="col-4 input-group">
+            <input type="text" class="form-control kw" value="{{ kw|default_if_none:''}}">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" type="button" id="btn-search">
+                    찾기{{so}}
+                </button>
+            </div>
+        </div>
+
+    </div>
+    <table class="table">
+        <thead>
+            <tr class="text-center table-primary">
+                <th>번호</th>
+                <th>추천</th>
+                <th style="width:50%">제목</th>
+                <th>글쓴이</th>
+                <th>작성일시</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if question_list %}
+            {% for question in question_list%}
+            <tr class="card-body">
+                <td>{{question_list.paginator.count|sub:question_list.start_index|sub:forloop.counter0|add:1}}</td>
+                <!-- <td >{{question_list.start_index|add:forloop.counter0}}</td> -->
+                <td>
+                    {% if question.voter.all.count > 0%}
+                    <span class="badge rounded-pill bg-primary px-2 px-1">
+                        {{question.voter.all.count}}
+                    </span>
+                    {%endif%}
+                </td>
+                <td class="text-left">
+                    <a href="{% url 'pybo:detail' question.id%}">
+                        {{question.subject}}
+                    </a>
+                    {%if question.answer_set.count > 0 %}
+                    <span class="text-danger small ml-2">{{question.answer_set.count}}</span>
+                    {%endif%}
+                </td>
+                <td class="text-center">{{question.author.username}}</td>
+                <td>{{question.create_date}}</td>
+            </tr>
+            {%endfor%}
+            {%endif%}
+        </tbody>
+    </table>
+    <!-- 페이징 처리 시작 -->
+    <ul class="pagination justify-content-center">
+        <!-- 이전 페이지 -->
+        {% if question_list.has_previous %}
+        <li class="page-item">
+            <a href="#" class="page-link" data-page="{{question_list.previous_page_number}}">이전</a>
+        </li>
+        {%else%}
+        <li class="page-item-disabled">
+            <a href="#" class="page-link" tabindex="-1" aria-disabled="true">이전</a>
+        </li>
+        {%endif%}
+        <!-- 페이지 리스트 -->
+        {% for page_number in question_list.paginator.page_range%}
+            {% if page_number >= question_list.number|add:-5 and page_number <= question_list.number|add:5%} 
+            {% if page_number == question_list.number %} <li class="page-item active" aria-current="page">
+                <a href="#" class="page-link" data-page="{{page_number}}">{{page_number}}</a>
+                </li>
+            {%else%}
+                <li class="page-item">
+                    <a href="#" data-page="{{page_number}}" class="page-link">{{page_number}}</a>
+                </li>
+            {%endif%}
+            {%endif%}
+
+        {%endfor%}
+            <!-- 다음 페이지 -->
+            {% if question_list.has_next%}
+            <li class="page-item">
+                <a href="#" class="page-link" data-page="{{question_list.next_page_number}}">다음</a>
+            </li>
+            {%else%}
+            <li class="page-item-disabled">
+                <a href="#" class="page-link">다음</a>
+            </li>
+            {%endif%}
+    </ul>
+    <a href="{% url 'pybo:question_create' %}" class="btn btn-primary">질문 등록하기</a>
+</div>
+<form action="{% url 'index' %}" method="get" id="searchForm">
+    <input type="hidden" id="kw" name="kw" value="{{ kw|default_if_none:''}}">
+    <input type="hidden" id="page" name="page" value="{{page}}">
+    <input type="hidden" id="so" name="so" value="{{so}}">
+</form>
+{%endblock%}
+{%block script%}
+<script type="text/javascript">
+    $().ready(function(){
+        $(".page-link").on('click', function(){
+            $("#page").val($(this).data("page"));
+            $("#searchForm").submit();
+        });
+
+        $("#btn-search").on('click', function(){
+            $("#kw").val($(".kw").val());
+            $("#page").val(1);
+            $('#searchForm').submit();
+        });
+
+        $(".so").on('change', function(){
+            $("#so").val($(this).val());
+            $("#page").val(1);
+            $('#searchForm').submit();
+        });
+    });
+</script>
+{%endblock%}
